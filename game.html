@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake and Ladder Game</title>
+    <style>
+        :root {
+            --primary-color: #4a6fa5;
+            --secondary-color: #ff9a3c;
+            --accent-color: #166088;
+            --text-color: #333;
+            --light-bg: #f8f9fa;
+            --cell-border: #dee2e6;
+            --snake-color: #ff6b6b;
+            --ladder-color: #51cf66;
+            --path-color: #fff3bf;
+            --player1-color: #ff5722;
+            --player2-color: #2196f3;
+            --dice-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: var(--light-bg);
+            padding: 20px;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        
+        h1 {
+            color: var(--accent-color);
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 2.5rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .game-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            max-width: 1200px;
+        }
+        
+        .board {
+            width: min(90vw, 500px);
+            height: min(90vw, 500px);
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(10, 1fr);
+            border: 3px solid var(--accent-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid var(--cell-border);
+            font-size: 12px;
+            font-weight: bold;
+            position: relative;
+            transition: transform 0.2s, background-color 0.3s;
+        }
+
+        .cell:hover {
+            transform: scale(1.05);
+            z-index: 5;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .cell-number {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            font-size: 0.7rem;
+            color: #666;
+        }
+        
+        .player {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            position: absolute;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.5s ease;
+        }
+
+        .player-1 {
+            background-color: var(--player1-color);
+            top: 10%;
+            left: 10%;
+        }
+
+        .player-2 {
+            background-color: var(--player2-color);
+            top: 10%;
+            right: 10%;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: min(90vw, 250px);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        button {
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        button:hover {
+            background-color: var(--accent-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        button:disabled {
+            background-color: #adb5bd;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .dice-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .dice {
+            width: 80px;
+            height: 80px;
+            background-color: var(--dice-bg);
+            border: 2px solid var(--accent-color);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0 auto;
+            transition: transform 0.3s ease;
+        }
+
+        .rolling {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-5px) rotate(-5deg); }
+            40% { transform: translateX(5px) rotate(5deg); }
+            60% { transform: translateX(-5px) rotate(-5deg); }
+            80% { transform: translateX(5px) rotate(5deg); }
+        }
+        
+        .status {
+            margin-top: 10px;
+            font-size: 1.1rem;
+            text-align: center;
+            padding: 10px;
+            background-color: rgba(255,255,255,0.8);
+            border-radius: 6px;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .player-turn {
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+        
+        .snake {
+            background-color: var(--snake-color);
+            background-image: linear-gradient(135deg, rgba(255,255,255,0.2) 25%, transparent 25%,
+                transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%,
+                transparent 75%, transparent);
+            background-size: 20px 20px;
+        }
+        
+        .ladder {
+            background-color: var(--ladder-color);
+            background-image: linear-gradient(135deg, rgba(255,255,255,0.2) 25%, transparent 25%,
+                transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%,
+                transparent 75%, transparent);
+            background-size: 20px 20px;
+        }
+        
+        .path {
+            background-color: var(--path-color);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { background-color: var(--path-color); }
+            50% { background-color: #ffec99; }
+            100% { background-color: var(--path-color); }
+        }
+        
+        .info-panel {
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: white;
+            max-width: 800px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .game-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: modalFadeIn 0.3s;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .controls {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Snake and Ladder Game</h1>
+    
+    <div class="game-container">
+        <div class="board" id="board"></div>
+        
+        <div class="controls">
+            <div class="dice-container">
+                <div class="dice" id="dice">0</div>
+                <div class="player-turn" id="playerTurn">Player 1's Turn</div>
+            </div>
+            <button id="rollBtn">Roll Dice</button>
+            <button id="autoPlayBtn">Auto Play</button>
+            <button id="findPathBtn">Find Shortest Path</button>
+            <button id="newGameBtn">New Game</button>
+            <div class="status" id="status">Player 1: 1 | Player 2: 1</div>
+        </div>
+    </div>
+    
+    <div class="game-stats">
+        <div class="stat-card">
+            <h3>Player 1 Wins</h3>
+            <p id="player1Wins">0</p>
+        </div>
+        <div class="stat-card">
+            <h3>Player 2 Wins</h3>
+            <p id="player2Wins">0</p>
+        </div>
+        <div class="stat-card">
+            <h3>Total Rolls</h3>
+            <p id="totalRolls">0</p>
+        </div>
+    </div>
+    
+    <div class="info-panel">
+        <h3>Game Information</h3>
+        <p>This enhanced version features:</p>
+        <ul>
+            <li>2-player mode with turn-based gameplay</li>
+            <li>Animated dice rolling</li>
+            <li>Visual path highlighting with animation</li>
+            <li>Game statistics tracking</li>
+            <li>Responsive design for all devices</li>
+            <li>Improved visual feedback and animations</li>
+        </ul>
+    </div>
+
+    <div class="modal" id="winnerModal">
+        <div class="modal-content">
+            <h2 id="winnerMessage">Player 1 Wins!</h2>
+            <button id="playAgainBtn">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            //DOM starting
+            const board = document.getElementById('board');
+            const diceElement = document.getElementById('dice');
+            const rollBtn = document.getElementById('rollBtn');
+            const autoPlayBtn = document.getElementById('autoPlayBtn');
+            const findPathBtn = document.getElementById('findPathBtn');
+            const newGameBtn = document.getElementById('newGameBtn');
+            const statusElement = document.getElementById('status');
+            const playerTurnElement = document.getElementById('playerTurn');
+            const player1WinsElement = document.getElementById('player1Wins');
+            const player2WinsElement = document.getElementById('player2Wins');
+            const totalRollsElement = document.getElementById('totalRolls');
+            const winnerModal = document.getElementById('winnerModal');
+            const winnerMessage = document.getElementById('winnerMessage');
+            const playAgainBtn = document.getElementById('playAgainBtn');
+            
+            //game working
+            let currentPlayer = 1;
+            let positions = {1: 1, 2: 1};
+            let playerElements = {1: null, 2: null};
+            let isAutoPlaying = false;
+            let autoPlayInterval = null;
+            let gameStats = {
+                player1Wins: 0,
+                player2Wins: 0,
+                totalRolls: 0
+            };
+            
+            //snakes and ladders indicators
+            const snakesAndLadders = {
+                //ladders 
+                4: {to: 14, type: 'ladder', label: 'Ladder to 14'},
+                9: {to: 31, type: 'ladder', label: 'Ladder to 31'},
+                20: {to: 38, type: 'ladder', label: 'Ladder to 38'},
+                28: {to: 84, type: 'ladder', label: 'Ladder to 84'},
+                40: {to: 59, type: 'ladder', label: 'Ladder to 59'},
+                51: {to: 67, type: 'ladder', label: 'Ladder to 67'},
+                63: {to: 81, type: 'ladder', label: 'Ladder to 81'},
+                71: {to: 91, type: 'ladder', label: 'Ladder to 91'},
+                
+                //snakes
+                17: {to: 7, type: 'snake', label: 'Snake to 7'},
+                54: {to: 34, type: 'snake', label: 'Snake to 34'},
+                62: {to: 19, type: 'snake', label: 'Snake to 19'},
+                64: {to: 60, type: 'snake', label: 'Snake to 60'},
+                87: {to: 24, type: 'snake', label: 'Snake to 24'},
+                93: {to: 73, type: 'snake', label: 'Snake to 73'},
+                95: {to: 75, type: 'snake', label: 'Snake to 75'},
+                99: {to: 78, type: 'snake', label: 'Snake to 78'}
+            };
+            
+            //initialize the game
+            function initGame() {
+                createBoard();
+                updateStatus();
+                updateStatsDisplay();
+                rollBtn.disabled = false;
+                autoPlayBtn.disabled = false;
+            }
+            
+            //create the board
+            function createBoard() {
+                board.innerHTML = '';
+                
+                //create cells in reverse order for snake and ladder board
+                for (let row = 9; row >= 0; row--) {
+                    for (let col = 0; col < 10; col++) {
+                        const cellNumber = row % 2 === 0 ? 
+                            row * 10 + col + 1 : 
+                            row * 10 + (10 - col);
+                            
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.id = `cell-${cellNumber}`;
+                        
+                        //cell number
+                        const cellNumberElement = document.createElement('span');
+                        cellNumberElement.className = 'cell-number';
+                        cellNumberElement.textContent = cellNumber;
+                        cell.appendChild(cellNumberElement);
+                        
+                        //snakes and ladders
+                        if (snakesAndLadders[cellNumber]) {
+                            const {type, label} = snakesAndLadders[cellNumber];
+                            cell.classList.add(type);
+                            cell.title = label;
+                        }
+                        
+                        board.appendChild(cell);
+                    }
+                }
+                
+                //create players
+                playerElements[1] = createPlayerElement(1);
+                playerElements[2] = createPlayerElement(2);
+                document.getElementById(`cell-${positions[1]}`).appendChild(playerElements[1]);
+                document.getElementById(`cell-${positions[2]}`).appendChild(playerElements[2]);
+            }
+            
+            //create player element
+            function createPlayerElement(playerNum) {
+                const player = document.createElement('div');
+                player.className = `player player-${playerNum}`;
+                player.id = `player-${playerNum}`;
+                return player;
+            }
+            
+            //move player to a new position
+            function movePlayer(playerNum, newPosition) {
+                //check if new position has a snake or ladder
+                if (snakesAndLadders[newPosition]) {
+                    const {to, label} = snakesAndLadders[newPosition];
+                    statusElement.textContent += ` Player ${playerNum}: ${label}`;
+                    newPosition = to;
+                }
+                
+                //update position
+                positions[playerNum] = newPosition;
+                
+                //move player visually with animation
+                const currentCell = document.getElementById(`cell-${newPosition}`);
+                playerElements[playerNum].style.transition = 'all 0.5s ease';
+                playerElements[playerNum].remove();
+                currentCell.appendChild(playerElements[playerNum]);
+                
+                //check for win
+                if (newPosition === 100) {
+                    endGame(playerNum);
+                    return;
+                }
+                
+                //switch player if not 6
+                updateStatus();
+            }
+            
+            //roll the dice with animation
+            async function rollDice() {
+                rollBtn.disabled = true;
+                diceElement.classList.add('rolling');
+                
+                //animate dice
+                for (let i = 0; i < 5; i++) {
+                    diceElement.textContent = Math.floor(Math.random() * 6) + 1;
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                diceElement.classList.remove('rolling');
+                const diceValue = Math.floor(Math.random() * 6) + 1;
+                diceElement.textContent = diceValue;
+                
+                gameStats.totalRolls++;
+                updateStatsDisplay();
+                
+                return diceValue;
+            }
+            
+            //find shortest path using BFS
+            function findShortestPath(start) {
+                //clear previous path 
+                document.querySelectorAll('.path').forEach(cell => {
+                    cell.classList.remove('path');
+                });
+                
+                //create a graph representation
+                const graph = {};
+                for (let i = 1; i <= 100; i++) {
+                    graph[i] = [];
+                    for (let j = 1; j <= 6; j++) {
+                        let next = i + j;
+                        if (next > 100) continue;
+                        
+                        //account for snakes and ladders
+                        if (snakesAndLadders[next]) {
+                            next = snakesAndLadders[next].to;
+                        }
+                        
+                        if (!graph[i].includes(next)) {
+                            graph[i].push(next);
+                        }
+                    }
+                }
+                
+                //BFS implementation
+                const queue = [{ position: start, path: [start] }];
+                const visited = new Set();
+                visited.add(start);
+                
+                while (queue.length > 0) {
+                    const current = queue.shift();
+                    
+                    //if we reached 100, return the path
+                    if (current.position === 100) {
+                        return current.path;
+                    }
+                    
+                    //explore all possible moves from current position
+                    for (const neighbor of graph[current.position]) {
+                        if (!visited.has(neighbor)) {
+                            visited.add(neighbor);
+                            queue.push({
+                                position: neighbor,
+                                path: [...current.path, neighbor]
+                            });
+                        }
+                    }
+                }
+                
+                return []; 
+            }
+            
+            //update game status display
+            function updateStatus() {
+                statusElement.textContent = `Player 1: ${positions[1]} | Player 2: ${positions[2]}`;
+                playerTurnElement.textContent = `Player ${currentPlayer}'s Turn`;
+                playerTurnElement.style.color = currentPlayer === 1 ? 'var(--player1-color)' : 'var(--player2-color)';
+            }
+            
+            //update statistics display
+            function updateStatsDisplay() {
+                player1WinsElement.textContent = gameStats.player1Wins;
+                player2WinsElement.textContent = gameStats.player2Wins;
+                totalRollsElement.textContent = gameStats.totalRolls;
+            }
+            
+            //end game and show winner
+            function endGame(winner) {
+                gameStats[`player${winner}Wins`]++;
+                updateStatsDisplay();
+                
+                winnerMessage.textContent = `Player ${winner} Wins!`;
+                winnerModal.style.display = 'flex';
+                
+                rollBtn.disabled = true;
+                autoPlayBtn.disabled = true;
+                
+                if (isAutoPlaying) {
+                    clearInterval(autoPlayInterval);
+                    isAutoPlaying = false;
+                    autoPlayBtn.textContent = 'Auto Play';
+                }
+            }
+            
+            //start a new game
+            function newGame() {
+                positions = {1: 1, 2: 1};
+                currentPlayer = 1;
+                winnerModal.style.display = 'none';
+                
+                //reset player positions
+                playerElements[1].remove();
+                playerElements[2].remove();
+                playerElements[1] = createPlayerElement(1);
+                playerElements[2] = createPlayerElement(2);
+                document.getElementById(`cell-1`).appendChild(playerElements[1]);
+                document.getElementById(`cell-1`).appendChild(playerElements[2]);
+                
+                updateStatus();
+            }
+            
+            //event listeners
+            rollBtn.addEventListener('click', async function() {
+                const diceValue = await rollDice();
+                
+                const newPosition = Math.min(positions[currentPlayer] + diceValue, 100);
+                movePlayer(currentPlayer, newPosition);
+                
+                //only switch player if they didn't roll a 6 and didn't win
+                if (diceValue !== 6 && newPosition !== 100) {
+                    currentPlayer = currentPlayer === 1 ? 2 : 1;
+                }
+                
+                updateStatus();
+                rollBtn.disabled = false;
+            });
+            
+            autoPlayBtn.addEventListener('click', function() {
+                if (!isAutoPlaying) {
+                    isAutoPlaying = true;
+                    autoPlayBtn.textContent = 'Stop Auto Play';
+                    rollBtn.disabled = true;
+                    findPathBtn.disabled = true;
+                    
+                    autoPlayInterval = setInterval(async function() {
+                        const diceValue = await rollDice();
+                        const newPosition = Math.min(positions[currentPlayer] + diceValue, 100);
+                        movePlayer(currentPlayer, newPosition);
+                        
+                        //only switch player if they didn't roll a 6 and didn't win
+                        if (diceValue !== 6 && newPosition !== 100) {
+                            currentPlayer = currentPlayer === 1 ? 2 : 1;
+                            updateStatus();
+                        }
+                        
+                        if (newPosition === 100) {
+                            clearInterval(autoPlayInterval);
+                            isAutoPlaying = false;
+                            autoPlayBtn.textContent = 'Auto Play';
+                        }
+                    }, 1500);
+                } else {
+                    clearInterval(autoPlayInterval);
+                    isAutoPlaying = false;
+                    autoPlayBtn.textContent = 'Auto Play';
+                    rollBtn.disabled = false;
+                    findPathBtn.disabled = false;
+                }
+            });
+            
+            findPathBtn.addEventListener('click', function() {
+                const path = findShortestPath(positions[currentPlayer]);
+                
+                //highlight the path
+                path.forEach(pos => {
+                    if (pos !== positions[currentPlayer] && pos !== 100) {
+                        document.getElementById(`cell-${pos}`).classList.add('path');
+                    }
+                });
+                
+                statusElement.textContent = `Player ${currentPlayer}'s shortest path: ${path.join(' → ')} (${path.length - 1} moves)`;
+            });
+            
+            newGameBtn.addEventListener('click', newGame);
+            
+            playAgainBtn.addEventListener('click', newGame);
+            
+            //initialize the game
+            initGame();
+        });
+    </script>
+</body>
+</html>
